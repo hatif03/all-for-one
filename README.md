@@ -133,6 +133,20 @@ Each runnable node has a **Run** button; output flows to connected nodes. Approv
 
 ---
 
+## Architecture
+
+The app is a single-page workflow builder: the **sidebar** holds “Create with AI” (requirement chat), API Keys, Connections, and workflow list; the **canvas** is a React Flow graph of nodes and edges. All state lives in **Zustand** stores; **Vercel AI SDK** powers requirement decomposition, workflow generation, edit-in-NL, and debug-with-AI.
+
+Detailed architecture diagrams (high-level system, AI workflow creation flow, node execution flow, project structure) are in **[docs/architecture.md](docs/architecture.md)**. The diagrams are in Mermaid and render on GitHub and in most Markdown viewers.
+
+| Layer | Key pieces |
+|-------|------------|
+| **UI** | `app/page.tsx`, `components/workflow.tsx`, `components/app-sidebar.tsx`, `components/nodes/*`, `components/ui/*` |
+| **State** | `lib/*-store.ts` (workflow, requirement, api-key, connections, openapi, examples) |
+| **Logic** | `lib/requirement-ai.ts`, `lib/workflow-generator.ts`, `lib/api-discovery.ts`, `lib/compute.ts`, `lib/export-n8n.ts` |
+
+---
+
 ## Contributing
 
 - Found a bug or have a feature idea? [Open an issue](https://github.com/hatif03/one-for-all/issues).
