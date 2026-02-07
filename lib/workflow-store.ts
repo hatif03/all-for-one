@@ -66,6 +66,7 @@ export interface WorkflowState {
   switchWorkflow: (id: string) => void;
   updateWorkflowName: (id: string, name: string) => void;
   importFromJson: (json: string) => void;
+  setWorkflowContent: (workflowId: string, nodes: Node[], edges: Edge[]) => void;
 
   // Current workflow getters
   getCurrentWorkflow: () => Workflow | null;
@@ -196,6 +197,16 @@ export const useWorkflowStore = create<WorkflowState>()(
           });
           console.error(error);
         }
+      },
+
+      setWorkflowContent: (workflowId: string, nodes: Node[], edges: Edge[]) => {
+        set((state) => ({
+          workflows: state.workflows.map((w) =>
+            w.id === workflowId
+              ? { ...w, nodes, edges, updatedAt: new Date() }
+              : w
+          ),
+        }));
       },
 
       updateWorkflowName: (id: string, name: string) => {
@@ -413,9 +424,17 @@ export const useWorkflowStore = create<WorkflowState>()(
         const inputs: ComputeNodeInput[] = [];
 
         for (const n of parentNodes) {
+          const edge = parentEdges.find((e) => e.source === n.id && e.target === nodeId);
+          if (!edge) continue;
+          // For condition nodes, only use this parent's output if the edge's branch matches
+          if (n.type === "control-condition") {
+            const branch = z.string().optional().safeParse(n.data?.branch);
+            const handle = edge.sourceHandle;
+            if (branch.success && handle != null && branch.data !== handle) continue;
+          }
+
           // Check if execution is aborted
           if (abortSignal?.aborted) {
-            // Clean up animations if aborted
             parentEdges.forEach((e) => {
               get().updateEdgeProps(e.id, { animated: false });
             });
@@ -432,7 +451,6 @@ export const useWorkflowStore = create<WorkflowState>()(
             .safeParse(n.data);
 
           if (!parsedData.success || parsedData.data.dirty || parsedData.data.output === undefined) {
-            // output missing, we need to run the parent node or is dirty
             get().runNode(n.id);
             return;
           }
@@ -514,7 +532,9 @@ export const useWorkflowStore = create<WorkflowState>()(
         });
 
         if (newData?.error) {
-          // stop here
+          return;
+        }
+        if (node.type === "control-approval" && (newData as Record<string, unknown>).pendingApproval === true) {
           return;
         }
 

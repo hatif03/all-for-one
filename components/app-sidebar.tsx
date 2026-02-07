@@ -13,17 +13,24 @@ import {
   SidebarMenuItem,
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useWorkflowStore } from "@/lib/workflow-store";
 import {
   RiAddLine,
   RiArrowDownBoxLine,
+  RiChatSmile3Line,
   RiGithubLine,
   RiKeyLine,
   RiLinkM,
   RiMoonLine,
   RiSunLine,
 } from "@remixicon/react";
-import { MoreVerticalIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -32,15 +39,19 @@ import ApiKeys from "./api-keys";
 import ConnectionsDialog from "./connections-dialog";
 import ImportDialog from "./import-dialog";
 import Logo from "./logo";
+import { RequirementChat } from "./requirement-chat";
+import { generateWorkflowFromSteps } from "@/lib/workflow-generator";
 
 export function AppSidebar() {
-  const { setTheme,resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
 
-  const { createWorkflow, switchWorkflow, currentWorkflowId } = useWorkflowStore(
+  const { createWorkflow, switchWorkflow, setWorkflowContent, currentWorkflowId } = useWorkflowStore(
     useShallow((state) => ({
       createWorkflow: state.createWorkflow,
       switchWorkflow: state.switchWorkflow,
+      setWorkflowContent: state.setWorkflowContent,
       currentWorkflowId: state.currentWorkflowId,
     }))
   );
@@ -97,6 +108,33 @@ export function AppSidebar() {
           <SidebarGroupLabel>New</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <Sheet open={aiSheetOpen} onOpenChange={setAiSheetOpen}>
+                  <SheetTrigger asChild>
+                    <SidebarMenuButton>
+                      <RiChatSmile3Line className="size-4 shrink-0" />
+                      Create with AI
+                    </SidebarMenuButton>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
+                    <SheetHeader className="p-4 border-b">
+                      <SheetTitle>Describe your workflow</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 min-h-0">
+                      <RequirementChat
+                        onGenerateWorkflow={(steps) => {
+                          const name = "Generated workflow";
+                          const id = createWorkflow(name);
+                          const { nodes, edges } = generateWorkflowFromSteps(steps, name);
+                          setWorkflowContent(id, nodes, edges);
+                          switchWorkflow(id);
+                          setAiSheetOpen(false);
+                        }}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => createWorkflow()}>
                   <RiAddLine className="size-4 shrink-0" />

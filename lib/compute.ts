@@ -5,12 +5,12 @@ import {
   computeActionEmail,
   computeActionHttp,
   computeActionSlack,
+  computeControlApproval,
+  computeControlCondition,
   computeControlDelay,
 } from "@/lib/compute-actions";
 import {
   computeActionDocument,
-  computeControlApproval,
-  computeControlCondition,
   computeDataTransform,
   computeTriggerManual,
   computeTriggerSchedule,

@@ -12,6 +12,8 @@ import { AnnotationNode } from "./nodes/annotation-node";
 import { ActionEmailNode } from "./nodes/action-email-node";
 import { ActionHttpNode } from "./nodes/action-http-node";
 import { ActionSlackNode } from "./nodes/action-slack-node";
+import { ControlApprovalNode } from "./nodes/control-approval-node";
+import { ControlConditionNode } from "./nodes/control-condition-node";
 import { ControlDelayNode } from "./nodes/control-delay-node";
 import { createGenericBusinessNode } from "./nodes/generic-business-node";
 import { MarkdownNode } from "./nodes/markdown-node";
@@ -35,8 +37,8 @@ const nodeTypes: NodeTypes = {
   "action-slack": ActionSlackNode,
   "action-document": createGenericBusinessNode("action-document"),
   "control-delay": ControlDelayNode,
-  "control-condition": createGenericBusinessNode("control-condition"),
-  "control-approval": createGenericBusinessNode("control-approval"),
+  "control-condition": ControlConditionNode,
+  "control-approval": ControlApprovalNode,
   "data-transform": createGenericBusinessNode("data-transform"),
 };
 

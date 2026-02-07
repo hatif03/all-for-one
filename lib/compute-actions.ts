@@ -1,7 +1,14 @@
 import type { ComputeNodeFunction, ComputeNodeInput } from "./compute";
 import { useConnectionsStore } from "./connections-store";
 import { getOperation } from "./api-catalog";
-import { actionHttpDataSchema, actionEmailDataSchema, actionSlackDataSchema, controlDelayDataSchema } from "./node-types";
+import {
+  actionHttpDataSchema,
+  actionEmailDataSchema,
+  actionSlackDataSchema,
+  controlDelayDataSchema,
+  controlApprovalDataSchema,
+  controlConditionDataSchema,
+} from "./node-types";
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
@@ -172,4 +179,74 @@ export const computeControlDelay: ComputeNodeFunction<Record<string, unknown>> =
   }
   const lastInput = inputs.length > 0 ? inputs[inputs.length - 1].output : "{}";
   return { ...data, loading: false, error: undefined, output: lastInput };
+};
+
+export const computeControlApproval: ComputeNodeFunction<Record<string, unknown>> = async (
+  inputs,
+  data,
+  _abortSignal,
+  _nodeId
+) => {
+  const parsed = controlApprovalDataSchema.safeParse(data);
+  const config = parsed.success ? parsed.data : {};
+  if (config.approved === true) {
+    const lastInput = inputs.length > 0 ? inputs[inputs.length - 1].output : "{}";
+    return {
+      ...data,
+      loading: false,
+      error: undefined,
+      output: lastInput,
+      approved: true,
+      pendingApproval: false,
+    };
+  }
+  return {
+    ...data,
+    loading: false,
+    error: undefined,
+    output: JSON.stringify({ status: "pending_approval", title: config.title, description: config.description }),
+    pendingApproval: true,
+    approved: false,
+  };
+};
+
+export const computeControlCondition: ComputeNodeFunction<Record<string, unknown>> = async (
+  inputs,
+  data,
+  _abortSignal,
+  _nodeId
+) => {
+  const parsed = controlConditionDataSchema.safeParse(data);
+  const config = parsed.success ? parsed.data : {};
+  const left = String(config.leftOperand ?? "").trim();
+  const right = String(config.rightOperand ?? "").trim();
+  const op = config.operator ?? "eq";
+  let result = false;
+  switch (op) {
+    case "eq":
+      result = left === right;
+      break;
+    case "neq":
+      result = left !== right;
+      break;
+    case "contains":
+      result = left.includes(right);
+      break;
+    case "gt":
+      result = Number(left) > Number(right);
+      break;
+    case "lt":
+      result = Number(left) < Number(right);
+      break;
+    default:
+      result = false;
+  }
+  const branch = result ? "true" : "false";
+  return {
+    ...data,
+    loading: false,
+    error: undefined,
+    branch,
+    output: JSON.stringify({ branch, result }),
+  };
 };
