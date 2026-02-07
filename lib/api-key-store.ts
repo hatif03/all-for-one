@@ -2,6 +2,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { providers } from './ai'
 
+/** Default API keys (from env) used when the user has not set their own. */
+const DEFAULT_API_KEYS: Record<string, string | undefined> = {
+  Groq: typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DEFAULT_GROQ_API_KEY : undefined,
+  'Google Generative AI': typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DEFAULT_GEMINI_API_KEY : undefined,
+}
+
+function getDefaultApiKey(provider: string): string | undefined {
+  const key = DEFAULT_API_KEYS[provider];
+  return key && key.trim() ? key : undefined;
+}
+
 interface ApiKeysState {
   open: boolean
   apiKeys: Record<string, string> // map provider to api key
@@ -26,10 +37,17 @@ export const useApiKeysStore = create<ApiKeysState>()(
             [provider]: apiKey,
           },
         })),
-      getApiKey: (provider: string) => get().apiKeys[provider],
+      getApiKey: (provider: string) => {
+        const userKey = get().apiKeys[provider];
+        if (userKey && userKey.trim()) return userKey;
+        return getDefaultApiKey(provider);
+      },
       getApiKeyFromModelId: (modelId: string) => {
         const provider = Object.keys(providers).find((provider) => providers[provider].models.includes(modelId));
-        return provider ? get().apiKeys[provider] : undefined;
+        if (!provider) return undefined;
+        const userKey = get().apiKeys[provider];
+        if (userKey && userKey.trim()) return userKey;
+        return getDefaultApiKey(provider);
       },
       removeApiKey: (provider: string) =>
         set((state) => {
