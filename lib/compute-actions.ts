@@ -308,6 +308,7 @@ export const computeActionSlack: ComputeNodeFunction<Record<string, unknown>> = 
     limit?: number;
     timestamp?: string;
     reactionName?: string;
+    items?: Array<{ channel?: string; message?: string }>;
   } = parsed.success ? parsed.data : { operation: "post_message", channel: "", message: "" };
   const token = useConnectionsStore.getState().getConnection("Slack");
   if (!token) {

@@ -79,7 +79,7 @@ export const ActionHttpNode: NodeTypes[keyof NodeTypes] = (props) => {
   const displayTitle = catalogEntry ? catalogEntry.operation.name : "HTTP Request";
   const isCustomHttpOp =
     catalogEntry?.operation.id === "http-request" ||
-    (catalogEntry && !catalogEntry.operation.urlTemplate && (!catalogEntry.operation.params?.length ?? true));
+    (catalogEntry && !catalogEntry.operation.urlTemplate && !(catalogEntry.operation.params?.length));
   const showCustomRequestForm = !catalogEntry || isCustomHttpOp;
 
   const content = catalogEntry && !showCustomRequestForm ? (
