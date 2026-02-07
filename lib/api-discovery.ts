@@ -23,7 +23,8 @@ function defaultParamMapping(op: CatalogOperation): Record<string, string> {
  * otherwise falls back to keyword matching.
  */
 export async function discoverOperations(
-  steps: { id: string; description: string; suggestedService?: string }[]
+  steps: { id: string; description: string; suggestedService?: string }[],
+  onProgress?: (phase: string, detail?: string) => void
 ): Promise<DiscoveredStep[]> {
   const dynamicServices = useOpenApiStore.getState().getServices();
   const mergedCatalog = [...apiCatalog, ...dynamicServices];
@@ -31,7 +32,9 @@ export async function discoverOperations(
 
   const result: DiscoveredStep[] = [];
 
-  for (const step of steps) {
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    onProgress?.("Matching step", `${i + 1}: ${step.description}`);
     const isHttpLike = step.suggestedService === "http";
     const hasCandidates = openApiOperations.length > 0;
 

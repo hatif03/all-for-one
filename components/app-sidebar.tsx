@@ -141,14 +141,28 @@ export function AppSidebar() {
                     </SheetHeader>
                     <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                       <RequirementChat
-                        onGenerateWorkflow={async (steps) => {
+                        onGenerateWorkflow={async (steps, _clarificationValues) => {
+                          const { useRequirementStore } = await import("@/lib/requirement-store");
                           const name = "Generated workflow";
                           const id = createWorkflow(name);
-                          const { nodes, edges } = await generateWorkflowFromSteps(steps, name);
-                          setWorkflowContent(id, nodes, edges);
-                          setWorkflowMetadata(id, { source: "ai-generated", approved: false });
-                          switchWorkflow(id);
-                          setAiSheetOpen(false);
+                          useRequirementStore.getState().setProgressMessage("Discovering operations…");
+                          try {
+                            const { nodes, edges } = await generateWorkflowFromSteps(
+                              steps,
+                              name,
+                              (phase, detail) => {
+                                useRequirementStore.getState().setProgressMessage(
+                                  detail ? `${phase}: ${detail}` : phase
+                                );
+                              }
+                            );
+                            setWorkflowContent(id, nodes, edges);
+                            setWorkflowMetadata(id, { source: "ai-generated", approved: false });
+                            switchWorkflow(id);
+                            setAiSheetOpen(false);
+                          } finally {
+                            useRequirementStore.getState().setProgressMessage("");
+                          }
                         }}
                       />
                     </div>

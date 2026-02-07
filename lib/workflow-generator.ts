@@ -172,11 +172,16 @@ function buildStepGroups(discovered: DiscoveredStep[], startIndex: number): Step
   return groups;
 }
 
+export type GenerateProgressCallback = (phase: string, detail?: string) => void;
+
 export async function generateWorkflowFromSteps(
   steps: RequirementStep[],
-  workflowName: string
+  workflowName: string,
+  onProgress?: GenerateProgressCallback
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
-  const discovered = await discoverOperations(steps);
+  onProgress?.("Discovering operations", "");
+  const discovered = await discoverOperations(steps, onProgress);
+  onProgress?.("Building workflow", "");
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
