@@ -25,15 +25,18 @@ import {
   RiAddLine,
   RiArrowDownBoxLine,
   RiChatSmile3Line,
+  RiFlowChart,
   RiGithubLine,
   RiKeyLine,
   RiLinkM,
   RiMoonLine,
   RiSunLine,
+  RiFileList3Line,
 } from "@remixicon/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { Edge, Node } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import ApiKeys from "./api-keys";
 import ConnectionsDialog from "./connections-dialog";
@@ -41,11 +44,22 @@ import ImportDialog from "./import-dialog";
 import Logo from "./logo";
 import { RequirementChat } from "./requirement-chat";
 import { generateWorkflowFromSteps } from "@/lib/workflow-generator";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 export function AppSidebar() {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [aiSheetOpen, setAiSheetOpen] = useState(false);
+  const [templateSheetOpen, setTemplateSheetOpen] = useState(false);
+  const [templateList, setTemplateList] = useState<{ name: string; description: string; nodes: unknown[]; edges: unknown[] }[]>([]);
+
+  useEffect(() => {
+    if (templateSheetOpen && templateList.length === 0) {
+      import("@/lib/templates").then(({ getTemplatesForPicker }) => setTemplateList(getTemplatesForPicker()));
+    }
+  }, [templateSheetOpen, templateList.length]);
 
   const { createWorkflow, switchWorkflow, setWorkflowContent, setWorkflowMetadata, currentWorkflowId } = useWorkflowStore(
     useShallow((state) => ({
@@ -89,6 +103,7 @@ export function AppSidebar() {
   const menuItems = workflows.map((workflow) => (
     <SidebarMenuItem key={workflow.id}>
       <SidebarMenuButton onClick={() => switchWorkflow(workflow.id)} isActive={workflow.id === currentWorkflowId}>
+        <RiFlowChart className="size-4 shrink-0" />
         <span className="truncate">{workflow.name}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -119,7 +134,10 @@ export function AppSidebar() {
                   </SheetTrigger>
                   <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
                     <SheetHeader className="p-4 border-b">
-                      <SheetTitle>Describe your workflow</SheetTitle>
+                      <SheetTitle className="flex items-center gap-2">
+                        <RiChatSmile3Line className="size-5 shrink-0" />
+                        Describe your workflow
+                      </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 min-h-0">
                       <RequirementChat
@@ -142,6 +160,43 @@ export function AppSidebar() {
                   <RiAddLine className="size-4 shrink-0" />
                   New Workflow
                 </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Sheet open={templateSheetOpen} onOpenChange={setTemplateSheetOpen}>
+                  <SheetTrigger asChild>
+                    <SidebarMenuButton>
+                      <RiFileList3Line className="size-4 shrink-0" />
+                      Start from template
+                    </SidebarMenuButton>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+                    <SheetHeader className="p-4 border-b">
+                      <SheetTitle>Choose a template</SheetTitle>
+                    </SheetHeader>
+                    <ScrollArea className="flex-1 p-4">
+                      <div className="space-y-2">
+                        {templateList.map((t) => (
+                          <Button
+                            key={t.name}
+                            variant="outline"
+                            className="h-auto flex flex-col items-start gap-1 p-3 text-left w-full"
+                            onClick={async () => {
+                              const { cloneWorkflowContent } = await import("@/lib/templates");
+                              const id = createWorkflow(t.name);
+                              const { nodes, edges } = cloneWorkflowContent(t.nodes as Node[], t.edges as Edge[]);
+                              setWorkflowContent(id, nodes, edges);
+                              switchWorkflow(id);
+                              setTemplateSheetOpen(false);
+                            }}
+                          >
+                            <span className="font-medium">{t.name}</span>
+                            <span className="text-xs text-muted-foreground font-normal">{t.description}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </SheetContent>
+                </Sheet>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <ImportDialog>
@@ -177,20 +232,42 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <ApiKeys>
-              <SidebarMenuButton>
-                <RiKeyLine className="size-4 shrink-0" />
-                API Keys
-              </SidebarMenuButton>
-            </ApiKeys>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <ApiKeys>
+                      <SidebarMenuButton>
+                        <RiKeyLine className="size-4 shrink-0" />
+                        API Keys
+                      </SidebarMenuButton>
+                    </ApiKeys>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Add an API key (e.g. Google) so the assistant can generate and edit workflows.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <ConnectionsDialog>
-              <SidebarMenuButton>
-                <RiLinkM className="size-4 shrink-0" />
-                Connections
-              </SidebarMenuButton>
-            </ConnectionsDialog>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <ConnectionsDialog>
+                      <SidebarMenuButton>
+                        <RiLinkM className="size-4 shrink-0" />
+                        Connections
+                      </SidebarMenuButton>
+                    </ConnectionsDialog>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Connect Gmail, Slack, and other services so workflows can send email or post messages.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <Link href="https://github.com/hatif03/one-for-all" target="_blank">

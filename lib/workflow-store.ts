@@ -585,20 +585,21 @@ export const useWorkflowStore = create<WorkflowState>()(
     }),
     {
       name: "workflow-storage",
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         workflows: state.workflows.map(getCleanedWorkflow),
         currentWorkflowId: state.currentWorkflowId,
       }),
       migrate: (persistedState, version) => {
-        if (version < 2) {
+        if (version < 3) {
+          const prev = persistedState as { currentWorkflowId?: string } | null;
           return {
-            ...persistedState,
+            ...(typeof persistedState === "object" && persistedState !== null ? persistedState : {}),
             workflows: templates,
-            currentWorkflowId: templates[0].id,
+            currentWorkflowId: templates[0]?.id ?? prev?.currentWorkflowId,
           };
         }
-        return persistedState as typeof persistedState;
+        return persistedState;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -618,6 +619,8 @@ export function getCleanedWorkflow(workflow: Workflow) {
       target: edge.target,
       type: edge.type,
       animated: false,
+      ...(edge.sourceHandle != null && { sourceHandle: edge.sourceHandle }),
+      ...(edge.targetHandle != null && { targetHandle: edge.targetHandle }),
     })),
     nodes: workflow.nodes.map((node) => ({
       id: node.id,

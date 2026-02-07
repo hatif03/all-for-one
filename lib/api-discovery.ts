@@ -1,4 +1,5 @@
-import { apiCatalog, findOperationByIntent, type CatalogOperation } from "./api-catalog";
+import { apiCatalog, findOperationByIntent, findOperationByIntentInCatalog, type CatalogOperation } from "./api-catalog";
+import { useOpenApiStore } from "./openapi-store";
 
 export interface DiscoveredStep {
   stepId: string;
@@ -16,8 +17,11 @@ export interface DiscoveredStep {
 export function discoverOperations(
   steps: { id: string; description: string; suggestedService?: string }[]
 ): DiscoveredStep[] {
+  const dynamicServices = useOpenApiStore.getState().getServices();
+  const mergedCatalog = [...apiCatalog, ...dynamicServices];
+
   return steps.map((step) => {
-    const operation = findOperationByIntent(step.description);
+    const operation = findOperationByIntentInCatalog(step.description, mergedCatalog) ?? findOperationByIntent(step.description);
     if (!operation) {
       const customOp = apiCatalog.find((s) => s.id === "http")?.operations[0] ?? null;
       return {
@@ -29,7 +33,7 @@ export function discoverOperations(
         suggestedService: step.suggestedService,
       };
     }
-    const service = apiCatalog.find((s) =>
+    const service = mergedCatalog.find((s) =>
       s.operations.some((o) => o.id === operation.id)
     );
     const paramMapping: Record<string, string> = {};

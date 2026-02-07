@@ -16,17 +16,23 @@ import { applyNaturalLanguageEdit } from "@/lib/workflow-edit-ai";
 import { getCleanedWorkflow, useWorkflowStore, type WorkflowState } from "@/lib/workflow-store";
 import {
   RiArrowUpBoxLine,
+  RiChatSmile3Line,
+  RiCheckboxCircleLine,
+  RiCloseLine,
   RiDeleteBin2Line,
+  RiFileCodeLine,
   RiPencilLine,
   RiStopLine,
-  RiCheckboxCircleLine,
 } from "@remixicon/react";
 import { Panel, useReactFlow } from "@xyflow/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
+import { Alert, AlertDescription } from "./ui/alert";
 import { AddNodeDropdown } from "./add-node-dropdown";
+
+const WELCOME_DISMISSED_KEY = "all-for-one-welcome-dismissed";
 
 export const Panels = memo(function Panels() {
   return (
@@ -38,13 +44,21 @@ export const Panels = memo(function Panels() {
 });
 
 const TopLeftPanel = memo(function TopLeftPanel() {
-  const { updateWorkflowName, currentName, currentWorkflowId } = useWorkflowStore(
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const { updateWorkflowName, currentName, currentWorkflowId, getNodes } = useWorkflowStore(
     useShallow((state: WorkflowState) => ({
       updateWorkflowName: state.updateWorkflowName,
       currentName: state.getCurrentWorkflow()?.name,
       currentWorkflowId: state.currentWorkflowId,
+      getNodes: state.getNodes,
     }))
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWelcomeDismissed(localStorage.getItem(WELCOME_DISMISSED_KEY) === "true");
+    }
+  }, []);
 
   const handleCanvasNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,19 +69,49 @@ const TopLeftPanel = memo(function TopLeftPanel() {
     [currentWorkflowId, updateWorkflowName]
   );
 
+  const handleDismissWelcome = useCallback(() => {
+    setWelcomeDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(WELCOME_DISMISSED_KEY, "true");
+    }
+  }, []);
+
+  const nodes = getNodes();
+  const isEmptyWorkflow = nodes.length <= 2 && nodes.every((n) => n.type === "trigger-manual" || n.type === "annotation");
+  const showWelcome = !welcomeDismissed && isEmptyWorkflow && currentName !== undefined;
+
   if (currentName === undefined) return null;
 
   return (
     <Panel position="top-left">
-      <div className="flex items-center gap-2 flex-wrap">
-        <SidebarTrigger />
-        <Input
-          value={currentName}
-          onChange={handleCanvasNameChange}
-          placeholder="Canvas name..."
-          className="w-fit max-w-64 font-semibold not-focus:bg-transparent not-focus:border-transparent not-focus:ring-0 dark:not-focus:bg-transparent dark:not-focus:border-transparent dark:not-focus:ring-0 not-focus:-translate-x-4 transition-all not-focus:shadow-none"
-        />
-        <AddNodeDropdown />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <SidebarTrigger />
+          <Input
+            value={currentName}
+            onChange={handleCanvasNameChange}
+            placeholder="Canvas name..."
+            className="w-fit max-w-64 font-semibold not-focus:bg-transparent not-focus:border-transparent not-focus:ring-0 dark:not-focus:bg-transparent dark:not-focus:border-transparent dark:not-focus:ring-0 not-focus:-translate-x-4 transition-all not-focus:shadow-none"
+          />
+          <AddNodeDropdown />
+        </div>
+        {showWelcome && (
+          <Alert className="w-full max-w-md py-2 pr-8 relative">
+            <RiChatSmile3Line className="size-4" />
+            <AlertDescription>
+              Start by describing your workflow in the sidebar with <strong>Create with AI</strong>, or add steps with <strong>Add node</strong>.
+            </AlertDescription>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-1 right-1 size-6"
+              onClick={handleDismissWelcome}
+              aria-label="Dismiss"
+            >
+              <RiCloseLine className="size-4" />
+            </Button>
+          </Alert>
+        )}
       </div>
     </Panel>
   );
@@ -179,6 +223,7 @@ const TopRightPanel = memo(function TopRightPanel() {
               disabled={nlEditLoading}
             />
             <Button onClick={handleNlEditSubmit} disabled={nlEditLoading || !nlEditInput.trim()}>
+              <RiCheckboxCircleLine className="size-4 shrink-0" />
               {nlEditLoading ? "Applying..." : "Apply changes"}
             </Button>
           </DialogContent>
@@ -194,6 +239,7 @@ const TopRightPanel = memo(function TopRightPanel() {
           <span className="hidden sm:block">Export</span>
         </Button>
         <Button variant="outline" size="sm" onClick={handleExportN8n}>
+          <RiFileCodeLine className="size-4 shrink-0" />
           <span className="hidden sm:block">Export for n8n</span>
         </Button>
         <Button

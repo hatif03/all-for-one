@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { providers } from "@/lib/ai";
 import { useApiKeysStore } from "@/lib/api-key-store";
-import { RiEyeLine, RiEyeOffLine, RiKey2Line } from "@remixicon/react";
+import { RiCheckLine, RiEyeLine, RiEyeOffLine, RiKey2Line, RiKeyLine } from "@remixicon/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -46,7 +46,10 @@ export default function ApiKeys({ children }: { children: React.ReactNode }) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>API Keys</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <RiKeyLine className="size-5 shrink-0" />
+            API Keys
+          </DialogTitle>
           <DialogDescription>
             Configure your API keys for each provider. Keys are stored locally in your browser.
           </DialogDescription>
@@ -96,6 +99,7 @@ export default function ApiKeys({ children }: { children: React.ReactNode }) {
                     )}
                   </Button>
                   <Button onClick={() => handleSaveKey(providerId)} className="w-fit">
+                    <RiCheckLine className="size-4 shrink-0" />
                     Save
                   </Button>
                 </div>

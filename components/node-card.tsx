@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { BaseNodeData } from "@/lib/base-node";
+import { getNodeIcon } from "@/lib/node-icons";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/lib/workflow-store";
 import {
@@ -21,16 +22,19 @@ import { debugWorkflowWithAI } from "@/lib/debug-ai";
 export function NodeCard({
   children,
   title,
+  icon,
   isError,
   buttons,
   node,
 }: {
   children: React.ReactNode;
   title: string | React.ReactNode;
+  icon?: React.ReactNode;
   isError?: boolean;
   buttons?: React.ReactNode;
   node: NodeProps<Node<BaseNodeData>>;
 }) {
+  const titleIcon = icon ?? getNodeIcon(node.type);
   
   const removeNode = useWorkflowStore((state) => state.removeNode);
   const runNode = useWorkflowStore((state) => state.runNode);
@@ -101,12 +105,13 @@ export function NodeCard({
       >
         <div
           className={cn(
-            "text-sm text-muted-foreground transition-colors",
+            "flex items-center gap-2 text-sm text-muted-foreground transition-colors",
             node.selected && "text-primary",
             isLoading && "dark:text-white text-foreground",
             error && "text-red-500"
           )}
         >
+          {titleIcon}
           {title}
         </div>
         {node.data?.dirty && (

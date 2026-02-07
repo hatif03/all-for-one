@@ -6,7 +6,14 @@ import { requirementToSteps } from "@/lib/requirement-ai";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { RiSendPlaneLine, RiBookmarkLine } from "@remixicon/react";
+import {
+  RiBookmarkLine,
+  RiCalendarLine,
+  RiMailLine,
+  RiMagicLine,
+  RiMessage2Line,
+  RiSendPlaneLine,
+} from "@remixicon/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,9 +54,44 @@ export function RequirementChat({
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Describe the workflow you want. Example: &quot;When a new employee is hired, send them a welcome email, add them to Slack, and schedule training.&quot;
-            </p>
+            <>
+              <p className="text-sm text-muted-foreground">
+                Describe what you want to automate. For example: &quot;Send an email to everyone on my list&quot; or &quot;When a form is submitted, notify my team.&quot;
+              </p>
+              <p className="text-xs font-medium text-muted-foreground">I want to…</p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 px-3 text-left justify-start gap-2 font-normal"
+                  onClick={() => setInput("Send a welcome email to new signups when they register.")}
+                >
+                  <RiMailLine className="size-4 shrink-0" />
+                  Send a welcome email to new signups
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 px-3 text-left justify-start gap-2 font-normal"
+                  onClick={() => setInput("When a form is submitted, notify my team in Slack and send a confirmation email.")}
+                >
+                  <RiMessage2Line className="size-4 shrink-0" />
+                  Notify my team when a form is submitted
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 px-3 text-left justify-start gap-2 font-normal"
+                  onClick={() => setInput("Run a report every Monday at 9am, then email it to the team and post a summary in Slack.")}
+                >
+                  <RiCalendarLine className="size-4 shrink-0" />
+                  Run a report weekly and email it
+                </Button>
+              </div>
+            </>
           )}
           {messages.map((m, i) => (
             <div
@@ -75,6 +117,7 @@ export function RequirementChat({
               <div className="flex gap-2 mt-2">
                 {onGenerateWorkflow && (
                   <Button className="flex-1" onClick={() => onGenerateWorkflow(steps)}>
+                    <RiMagicLine className="size-4 shrink-0" />
                     Generate workflow
                   </Button>
                 )}
@@ -97,7 +140,7 @@ export function RequirementChat({
       </ScrollArea>
       <div className="p-4 border-t flex gap-2">
         <Textarea
-          placeholder="Describe your workflow..."
+          placeholder="Describe what you want to automate, e.g. 'Send an email to everyone on my list'"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

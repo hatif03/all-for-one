@@ -128,8 +128,16 @@ export const apiCatalog: CatalogService[] = [
 ];
 
 export function findOperationByIntent(intent: string): CatalogOperation | null {
+  return findOperationByIntentInCatalog(intent, apiCatalog);
+}
+
+/** Search a catalog (e.g. built-in + OpenAPI services) by intent. */
+export function findOperationByIntentInCatalog(
+  intent: string,
+  catalog: CatalogService[]
+): CatalogOperation | null {
   const lower = intent.toLowerCase();
-  for (const service of apiCatalog) {
+  for (const service of catalog) {
     for (const op of service.operations) {
       if (op.intentKeywords.some((k) => lower.includes(k.toLowerCase()))) {
         return op;

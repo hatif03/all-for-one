@@ -9,6 +9,8 @@ import { z } from "zod";
 // --- Triggers ---
 export const triggerManualDataSchema = baseNodeDataSchema.extend({
   label: z.string().optional(),
+  listInput: z.string().optional(),
+  datasetId: z.string().optional(),
 });
 export type TriggerManualData = z.infer<typeof triggerManualDataSchema>;
 
@@ -31,6 +33,9 @@ export const actionHttpDataSchema = baseNodeDataSchema.extend({
   headers: z.record(z.string()).optional(),
   body: z.string().optional(),
   bodyType: z.enum(["json", "raw"]).optional(),
+  catalogServiceId: z.string().optional(),
+  catalogOperationId: z.string().optional(),
+  catalogParamValues: z.record(z.string()).optional(),
 });
 export type ActionHttpData = z.infer<typeof actionHttpDataSchema>;
 
@@ -40,6 +45,8 @@ export const actionEmailDataSchema = baseNodeDataSchema.extend({
   subject: z.string().optional(),
   body: z.string().optional(),
   template: z.string().optional(),
+  toSource: z.enum(["single", "list"]).optional(),
+  toListField: z.string().optional(),
 });
 export type ActionEmailData = z.infer<typeof actionEmailDataSchema>;
 

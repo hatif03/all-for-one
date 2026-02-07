@@ -18,6 +18,7 @@ import { ControlDelayNode } from "./nodes/control-delay-node";
 import { createGenericBusinessNode } from "./nodes/generic-business-node";
 import { MarkdownNode } from "./nodes/markdown-node";
 import { PromptNode } from "./nodes/prompt-node";
+import { TriggerManualNode } from "./nodes/trigger-manual-node";
 import { Panels } from "./panels";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,7 +30,7 @@ const nodeTypes: NodeTypes = {
   ai: AiNode,
   markdown: MarkdownNode,
   annotation: AnnotationNode,
-  "trigger-manual": createGenericBusinessNode("trigger-manual"),
+  "trigger-manual": TriggerManualNode,
   "trigger-webhook": createGenericBusinessNode("trigger-webhook"),
   "trigger-schedule": createGenericBusinessNode("trigger-schedule"),
   "action-http": ActionHttpNode,

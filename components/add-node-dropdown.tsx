@@ -27,41 +27,45 @@ import {
   PopoverTrigger,
 } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
-const NODE_GROUPS: { label: string; items: { type: string; label: string; icon: React.ReactNode }[] }[] = [
+const NODE_GROUPS: {
+  label: string;
+  items: { type: string; label: string; description?: string; icon: React.ReactNode }[];
+}[] = [
   {
     label: "Triggers",
     items: [
-      { type: "trigger-manual", label: "Manual", icon: <RiInputMethodLine className="size-4" /> },
-      { type: "trigger-webhook", label: "Webhook", icon: <RiLinkM className="size-4" /> },
-      { type: "trigger-schedule", label: "Schedule", icon: <RiCalendarLine className="size-4" /> },
+      { type: "trigger-manual", label: "Run by hand", description: "Start the workflow manually", icon: <RiInputMethodLine className="size-4" /> },
+      { type: "trigger-webhook", label: "When something calls in", description: "Form submission or external event", icon: <RiLinkM className="size-4" /> },
+      { type: "trigger-schedule", label: "Run on a schedule", description: "Daily, weekly, or custom time", icon: <RiCalendarLine className="size-4" /> },
     ],
   },
   {
     label: "Actions",
     items: [
-      { type: "action-http", label: "HTTP", icon: <RiLinkM className="size-4" /> },
-      { type: "action-email", label: "Email", icon: <RiMailLine className="size-4" /> },
-      { type: "action-slack", label: "Slack", icon: <RiMessage2Line className="size-4" /> },
-      { type: "action-document", label: "Document", icon: <RiFileTextLine className="size-4" /> },
+      { type: "action-http", label: "Call an API or service", description: "Connect to another app or website", icon: <RiLinkM className="size-4" /> },
+      { type: "action-email", label: "Send an email", description: "Send messages via Gmail or SendGrid", icon: <RiMailLine className="size-4" /> },
+      { type: "action-slack", label: "Post to Slack", description: "Send a message to a channel", icon: <RiMessage2Line className="size-4" /> },
+      { type: "action-document", label: "Process a document", description: "Extract or handle PDFs and forms", icon: <RiFileTextLine className="size-4" /> },
     ],
   },
   {
     label: "Control flow",
     items: [
-      { type: "control-delay", label: "Delay", icon: <RiTimeLine className="size-4" /> },
-      { type: "control-condition", label: "Condition", icon: <RiGitBranchLine className="size-4" /> },
-      { type: "control-approval", label: "Approval", icon: <RiCheckboxCircleLine className="size-4" /> },
+      { type: "control-delay", label: "Delay (wait X time)", description: "Pause before the next step", icon: <RiTimeLine className="size-4" /> },
+      { type: "control-condition", label: "If/else branch", description: "Do different things based on a condition", icon: <RiGitBranchLine className="size-4" /> },
+      { type: "control-approval", label: "Wait for approval", description: "Someone must approve before continuing", icon: <RiCheckboxCircleLine className="size-4" /> },
     ],
   },
   {
     label: "Data & AI",
     items: [
-      { type: "data-transform", label: "Transform", icon: <RiFlowChart className="size-4" /> },
-      { type: "prompt", label: "Prompt", icon: <RiTextSnippet className="size-4" /> },
-      { type: "ai", label: "AI", icon: <RiAiGenerate2 className="size-4" /> },
-      { type: "markdown", label: "Markdown", icon: <RiMarkdownLine className="size-4" /> },
-      { type: "annotation", label: "Annotation", icon: <RiChatQuoteLine className="size-4" /> },
+      { type: "data-transform", label: "Transform data", description: "Map or reshape data between steps", icon: <RiFlowChart className="size-4" /> },
+      { type: "prompt", label: "Prompt", description: "Text template with placeholders", icon: <RiTextSnippet className="size-4" /> },
+      { type: "ai", label: "AI", description: "Use AI to generate or decide", icon: <RiAiGenerate2 className="size-4" /> },
+      { type: "markdown", label: "Markdown", description: "Rich text content", icon: <RiMarkdownLine className="size-4" /> },
+      { type: "annotation", label: "Annotation", description: "Note or instruction on the canvas", icon: <RiChatQuoteLine className="size-4" /> },
     ],
   },
 ];
@@ -116,16 +120,26 @@ export const AddNodeDropdown = memo(function AddNodeDropdown() {
                   {group.label}
                 </p>
                 {group.items.map((item) => (
-                  <Button
-                    key={item.type}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start gap-2 font-normal"
-                    onClick={() => handleAdd(item.type)}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Button>
+                  <TooltipProvider key={item.type}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start gap-2 font-normal"
+                          onClick={() => handleAdd(item.type)}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </Button>
+                      </TooltipTrigger>
+                      {item.description && (
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{item.description}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 ))}
               </div>
             ))}

@@ -35,12 +35,17 @@ export const computeActionHttp: ComputeNodeFunction<Record<string, unknown>> = a
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (abortSignal?.aborted) throw new Error("Operation was aborted");
     try {
-      const body =
-        config.method !== "GET" && config.body != null
-          ? config.bodyType === "json"
-            ? JSON.stringify(typeof config.body === "string" ? tryParseJson(config.body) : config.body)
-            : String(config.body)
-          : undefined;
+      let body: string | undefined;
+      if (config.method !== "GET") {
+        if (config.catalogParamValues && typeof config.catalogParamValues === "object") {
+          body = JSON.stringify(config.catalogParamValues);
+        } else if (config.body != null) {
+          body =
+            config.bodyType === "json"
+              ? JSON.stringify(typeof config.body === "string" ? tryParseJson(config.body) : config.body)
+              : String(config.body);
+        }
+      }
 
       const res = await fetch(config.url, {
         method: config.method,
@@ -85,14 +90,27 @@ function tryParseJson(s: string): unknown {
   }
 }
 
+function getRowsFromInputs(inputs: ComputeNodeInput[]): Record<string, unknown>[] {
+  const raw = inputs[0]?.output;
+  if (typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw) as { rows?: Record<string, unknown>[] };
+    return Array.isArray(parsed.rows) ? parsed.rows : [];
+  } catch {
+    return [];
+  }
+}
+
 export const computeActionEmail: ComputeNodeFunction<Record<string, unknown>> = async (
-  _inputs,
+  inputs,
   data,
   abortSignal,
   _nodeId
 ) => {
   const parsed = actionEmailDataSchema.safeParse(data);
-  const config = parsed.success ? parsed.data : { service: "SendGrid", to: "", subject: "", body: "" };
+  const config = parsed.success
+    ? parsed.data
+    : { service: "SendGrid", to: "", subject: "", body: "", toSource: "single" as const, toListField: "email" };
   const token = useConnectionsStore.getState().getConnection(config.service === "Gmail" ? "Gmail" : "SendGrid");
   if (!token) {
     return { ...data, loading: false, error: `Connect ${config.service} in Connections to send email.`, output: undefined };
@@ -101,7 +119,23 @@ export const computeActionEmail: ComputeNodeFunction<Record<string, unknown>> = 
   if (!op?.urlTemplate) {
     return { ...data, loading: false, error: "Email operation not found in catalog.", output: undefined };
   }
-  try {
+
+  const isList = config.toSource === "list";
+  const rows = isList ? getRowsFromInputs(inputs) : [];
+  const recipients: string[] = isList
+    ? rows
+        .map((row) => {
+          const key = config.toListField ?? "email";
+          return String(row[key] ?? row.email ?? row.value ?? "");
+        })
+        .filter((t) => t.length > 0)
+    : config.to ? [config.to] : [];
+
+  if (recipients.length === 0) {
+    return { ...data, loading: false, error: "No recipient (To or list column).", output: undefined };
+  }
+
+  const sendOne = async (to: string): Promise<void> => {
     if (config.service === "SendGrid") {
       const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
@@ -110,7 +144,7 @@ export const computeActionEmail: ComputeNodeFunction<Record<string, unknown>> = 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          personalizations: [{ to: [{ email: config.to }] }],
+          personalizations: [{ to: [{ email: to }] }],
           from: { email: "noreply@workflow.local", name: "Workflow" },
           subject: config.subject,
           content: [{ type: "text/plain", value: config.body ?? "" }],
@@ -118,9 +152,20 @@ export const computeActionEmail: ComputeNodeFunction<Record<string, unknown>> = 
         signal: abortSignal,
       });
       if (!res.ok) throw new Error(`SendGrid ${res.status}: ${await res.text()}`);
-      return { ...data, loading: false, error: undefined, output: JSON.stringify({ sent: true, to: config.to }) };
     }
-    return { ...data, loading: false, error: "Gmail send not implemented; use SendGrid or HTTP node.", output: undefined };
+  };
+
+  try {
+    for (const to of recipients) {
+      if (abortSignal?.aborted) throw new Error("Operation was aborted");
+      await sendOne(to);
+    }
+    return {
+      ...data,
+      loading: false,
+      error: undefined,
+      output: JSON.stringify({ sent: true, count: recipients.length, to: recipients }),
+    };
   } catch (err) {
     return { ...data, loading: false, error: err instanceof Error ? err.message : String(err), output: undefined };
   }
