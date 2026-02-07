@@ -8,12 +8,15 @@ import {
   RiExpandDiagonalS2Line,
   RiFileCopyLine,
   RiLoader5Line,
-  RiPlayLine
+  RiPlayLine,
+  RiRobot2Line,
 } from "@remixicon/react";
 import { Node, NodeProps, NodeResizeControl, NodeToolbar } from "@xyflow/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { debugWorkflowWithAI } from "@/lib/debug-ai";
 
 export function NodeCard({
   children,
@@ -31,12 +34,41 @@ export function NodeCard({
   
   const removeNode = useWorkflowStore((state) => state.removeNode);
   const runNode = useWorkflowStore((state) => state.runNode);
+  const getNodes = useWorkflowStore((state) => state.getNodes);
+  const getEdges = useWorkflowStore((state) => state.getEdges);
+  const getCurrentWorkflow = useWorkflowStore((state) => state.getCurrentWorkflow);
+  const setWorkflowContent = useWorkflowStore((state) => state.setWorkflowContent);
+  const [debugLoading, setDebugLoading] = useState(false);
   const isLoading = useMemo(() => node.data?.loading === true, [node.data]);
   const addNode = useWorkflowStore((state) => state.addNode);
   const error = useMemo(() => {
     const validatedError = z.string().safeParse(node.data?.error);
     return validatedError.success ? validatedError.data : null;
   }, [node.data]);
+
+  const handleDebugWithAI = useCallback(async () => {
+    if (!error) return;
+    const workflow = getCurrentWorkflow();
+    if (!workflow?.id) return;
+    setDebugLoading(true);
+    try {
+      const result = await debugWorkflowWithAI(
+        getNodes(),
+        getEdges(),
+        node.id,
+        error
+      );
+      if ("error" in result) {
+        toast.error(result.error);
+      } else {
+        setWorkflowContent(workflow.id, result.nodes, result.edges);
+        toast.success("Workflow updated. Re-run the node to test.");
+        runNode(node.id, true);
+      }
+    } finally {
+      setDebugLoading(false);
+    }
+  }, [error, node.id, getCurrentWorkflow, getNodes, getEdges, setWorkflowContent, runNode]);
 
   const handleDuplicate = useCallback(() => {
     addNode({
@@ -85,16 +117,39 @@ export function NodeCard({
         )}
         <div className="ml-auto"></div>
         {error && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" className="-m-1 size-8" size={"icon"}>
-                  <RiErrorWarningFill className="size-5 text-red-500" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="whitespace-pre-wrap max-w-lg">{error}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" className="-m-1 size-8" size={"icon"}>
+                    <RiErrorWarningFill className="size-5 text-red-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="whitespace-pre-wrap max-w-lg">{error}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="-m-1 size-8"
+                    size="icon"
+                    disabled={debugLoading}
+                    onClick={handleDebugWithAI}
+                    title="Debug with AI"
+                  >
+                    {debugLoading ? (
+                      <RiLoader5Line className="size-5 animate-spin" />
+                    ) : (
+                      <RiRobot2Line className="size-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Fix this node with AI and re-run</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </>
         )}
         {buttons}
         <Button

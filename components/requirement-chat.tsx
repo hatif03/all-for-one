@@ -1,12 +1,14 @@
 "use client";
 
 import { useRequirementStore } from "@/lib/requirement-store";
+import { useExamplesStore } from "@/lib/examples-store";
 import { requirementToSteps } from "@/lib/requirement-ai";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { RiSendPlaneLine } from "@remixicon/react";
+import { RiSendPlaneLine, RiBookmarkLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function RequirementChat({
@@ -15,6 +17,7 @@ export function RequirementChat({
   onGenerateWorkflow?: (steps: { id: string; description: string }[]) => void;
 }) {
   const { messages, steps, isLoading, addMessage, setSteps, setLoading } = useRequirementStore();
+  const addExample = useExamplesStore((s) => s.addExample);
   const [input, setInput] = useState("");
 
   const handleSend = useCallback(async () => {
@@ -69,14 +72,25 @@ export function RequirementChat({
                   <li key={s.id}>{s.description}</li>
                 ))}
               </ol>
-              {onGenerateWorkflow && (
+              <div className="flex gap-2 mt-2">
+                {onGenerateWorkflow && (
+                  <Button className="flex-1" onClick={() => onGenerateWorkflow(steps)}>
+                    Generate workflow
+                  </Button>
+                )}
                 <Button
-                  className="w-full mt-2"
-                  onClick={() => onGenerateWorkflow(steps)}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const requirement = messages.filter((m) => m.role === "user").map((m) => m.content).join(" ");
+                    addExample(requirement || "Workflow", steps);
+                    toast.success("Saved as template for future generations");
+                  }}
+                  title="Save as template"
                 >
-                  Generate workflow
+                  <RiBookmarkLine className="size-4" />
                 </Button>
-              )}
+              </div>
             </div>
           )}
         </div>

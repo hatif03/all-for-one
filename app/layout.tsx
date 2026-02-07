@@ -22,9 +22,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "One for All",
+  title: "One for All – AI-Powered Business Workflow Generator",
   description:
-    "Free open-source node-based AI workflow builder. Create reusable tasks with drag-and-drop nodes, chain AI operations, use any model with your API keys. Runs entirely in browser, your data stays private. Perfect for email automation, content creation, data processing, etc.",
+    "Turn natural language into production-ready workflows. Describe what you need in plain English, get executable workflows with email, Slack, approvals, and more. No code required. Create with AI or build from scratch. Runs in browser, your data stays private.",
 };
 
 export default function RootLayout({

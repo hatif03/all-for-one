@@ -6,6 +6,7 @@ export interface DiscoveredStep {
   operation: CatalogOperation | null;
   serviceId: string;
   paramMapping: Record<string, string>;
+  suggestedService?: string;
 }
 
 /**
@@ -13,7 +14,7 @@ export interface DiscoveredStep {
  * Later can be replaced with LLM semantic matching.
  */
 export function discoverOperations(
-  steps: { id: string; description: string }[]
+  steps: { id: string; description: string; suggestedService?: string }[]
 ): DiscoveredStep[] {
   return steps.map((step) => {
     const operation = findOperationByIntent(step.description);
@@ -25,6 +26,7 @@ export function discoverOperations(
         operation: customOp,
         serviceId: "http",
         paramMapping: {},
+        suggestedService: step.suggestedService,
       };
     }
     const service = apiCatalog.find((s) =>
@@ -40,6 +42,7 @@ export function discoverOperations(
       operation,
       serviceId: service?.id ?? "http",
       paramMapping,
+      suggestedService: step.suggestedService,
     };
   });
 }

@@ -45,6 +45,11 @@ const workflowDataSchema = z.object({
   updatedAt: z.coerce.date().optional(),
 });
 
+export interface WorkflowMetadata {
+  source?: "ai-generated";
+  approved?: boolean;
+}
+
 // Workflow State Management
 export interface Workflow {
   id: string;
@@ -53,6 +58,7 @@ export interface Workflow {
   edges: Edge[];
   createdAt: Date | string;
   updatedAt: Date | string;
+  metadata?: WorkflowMetadata;
 }
 
 export interface WorkflowState {
@@ -67,6 +73,7 @@ export interface WorkflowState {
   updateWorkflowName: (id: string, name: string) => void;
   importFromJson: (json: string) => void;
   setWorkflowContent: (workflowId: string, nodes: Node[], edges: Edge[]) => void;
+  setWorkflowMetadata: (workflowId: string, metadata: WorkflowMetadata) => void;
 
   // Current workflow getters
   getCurrentWorkflow: () => Workflow | null;
@@ -204,6 +211,16 @@ export const useWorkflowStore = create<WorkflowState>()(
           workflows: state.workflows.map((w) =>
             w.id === workflowId
               ? { ...w, nodes, edges, updatedAt: new Date() }
+              : w
+          ),
+        }));
+      },
+
+      setWorkflowMetadata: (workflowId: string, metadata: WorkflowMetadata) => {
+        set((state) => ({
+          workflows: state.workflows.map((w) =>
+            w.id === workflowId
+              ? { ...w, metadata: { ...w.metadata, ...metadata }, updatedAt: new Date() }
               : w
           ),
         }));

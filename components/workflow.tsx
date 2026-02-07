@@ -79,10 +79,12 @@ export default function Workflow() {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <SidebarTrigger className="absolute top-4 left-4" />
-        <div className="text-center flex flex-col items-center gap-2">
+        <div className="text-center flex flex-col items-center gap-2 max-w-md">
           <Logo className="size-40" />
           <p className="text-foreground font-semibold text-2xl tracking-tight">No workflow selected</p>
-          <p className="text-sm text-muted-foreground">Create a workflow from the sidebar to get started</p>
+          <p className="text-sm text-muted-foreground">
+            Use <strong>Create with AI</strong> in the sidebar to describe your workflow in plain English and get a ready-to-run workflow, or <strong>New Workflow</strong> to build from scratch.
+          </p>
         </div>
       </div>
     );

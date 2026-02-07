@@ -1,9 +1,10 @@
 import { generateText } from "ai";
 import { providers } from "./ai";
 import { useApiKeysStore } from "./api-key-store";
+import { useExamplesStore } from "./examples-store";
 import type { RequirementStep } from "./requirement-store";
 
-const SYSTEM_PROMPT = `You are a workflow assistant. The user describes a business process they want to automate.
+const SYSTEM_BASE = `You are a workflow assistant. The user describes a business process they want to automate.
 
 Rules:
 1. If the requirement is clear enough to break into steps, reply with ONLY a valid JSON object (no markdown, no extra text): {"steps":[{"id":"1","description":"...","suggestedService":"..."}, ...]}.
@@ -11,6 +12,17 @@ Rules:
 3. suggestedService is optional: use "email", "slack", "http", "approval", "delay" when obvious.
 4. If you need clarification (e.g. which email provider, which systems), ask 1-2 brief questions in plain text. Do not output JSON in that case.
 5. Keep all responses concise.`;
+
+function getSystemPrompt(): string {
+  const examples = useExamplesStore.getState().getExamples();
+  if (examples.length === 0) return SYSTEM_BASE;
+  const ex = examples[0];
+  return `${SYSTEM_BASE}
+
+Example of a good decomposition:
+User: "${ex.requirement.slice(0, 200)}..."
+Steps (JSON): ${JSON.stringify(ex.steps)}`;
+}
 
 export interface RequirementAIResult {
   steps?: RequirementStep[];
@@ -51,7 +63,7 @@ export async function requirementToSteps(
 
   const { text } = await generateText({
     model,
-    system: SYSTEM_PROMPT,
+    system: getSystemPrompt(),
     prompt: userContent,
   });
 

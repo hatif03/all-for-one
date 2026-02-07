@@ -1,8 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Textarea } from "@/components/ui/textarea";
+import { toN8nWorkflow } from "@/lib/export-n8n";
+import { applyNaturalLanguageEdit } from "@/lib/workflow-edit-ai";
 import { getCleanedWorkflow, useWorkflowStore, type WorkflowState } from "@/lib/workflow-store";
 import {
   RiAiGenerate2,
@@ -10,11 +20,13 @@ import {
   RiChatQuoteLine,
   RiDeleteBin2Line,
   RiMarkdownLine,
+  RiPencilLine,
   RiStopLine,
   RiTextSnippet,
+  RiCheckboxCircleLine,
 } from "@remixicon/react";
 import { Panel, useReactFlow } from "@xyflow/react";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
@@ -64,15 +76,60 @@ const TopLeftPanel = memo(function TopLeftPanel() {
 });
 
 const TopRightPanel = memo(function TopRightPanel() {
-  const { deleteWorkflow, getCurrentWorkflow, currentWorkflowId, abortAllOperations, isRunning } = useWorkflowStore(
+  const [nlEditOpen, setNlEditOpen] = useState(false);
+  const [nlEditInput, setNlEditInput] = useState("");
+  const [nlEditLoading, setNlEditLoading] = useState(false);
+  const {
+    deleteWorkflow,
+    getCurrentWorkflow,
+    getNodes,
+    getEdges,
+    currentWorkflowId,
+    abortAllOperations,
+    setWorkflowContent,
+    setWorkflowMetadata,
+    isRunning,
+  } = useWorkflowStore(
     useShallow((state: WorkflowState) => ({
       deleteWorkflow: state.deleteWorkflow,
       getCurrentWorkflow: state.getCurrentWorkflow,
+      getNodes: state.getNodes,
+      getEdges: state.getEdges,
       currentWorkflowId: state.currentWorkflowId,
       abortAllOperations: state.abortAllOperations,
+      setWorkflowContent: state.setWorkflowContent,
+      setWorkflowMetadata: state.setWorkflowMetadata,
       isRunning: state.getNodes().some((node) => node.data.loading),
     }))
   );
+  const workflow = getCurrentWorkflow();
+  const isAiGenerated = workflow?.metadata?.source === "ai-generated";
+  const isApproved = workflow?.metadata?.approved === true;
+
+  const handleApproveDeploy = useCallback(() => {
+    if (currentWorkflowId) {
+      setWorkflowMetadata(currentWorkflowId, { approved: true });
+      toast.success("Workflow approved and ready to run");
+    }
+  }, [currentWorkflowId, setWorkflowMetadata]);
+
+  const handleNlEditSubmit = useCallback(async () => {
+    if (!currentWorkflowId || !nlEditInput.trim()) return;
+    setNlEditLoading(true);
+    try {
+      const result = await applyNaturalLanguageEdit(getNodes(), getEdges(), nlEditInput.trim());
+      if ("error" in result) {
+        toast.error(result.error);
+      } else {
+        setWorkflowContent(currentWorkflowId, result.nodes, result.edges);
+        toast.success("Workflow updated");
+        setNlEditInput("");
+        setNlEditOpen(false);
+      }
+    } finally {
+      setNlEditLoading(false);
+    }
+  }, [currentWorkflowId, nlEditInput, getNodes, getEdges, setWorkflowContent]);
 
   const handleDeleteWorkflow = useCallback(() => {
     if (currentWorkflowId && confirm("Are you sure you want to delete this workflow? This action cannot be undone.")) {
@@ -81,16 +138,53 @@ const TopRightPanel = memo(function TopRightPanel() {
   }, [currentWorkflowId, deleteWorkflow]);
 
   const handleExportToClipboard = useCallback(() => {
-    const workflow = getCurrentWorkflow();
-    if (workflow) {
-      navigator.clipboard.writeText(JSON.stringify(getCleanedWorkflow(workflow), null, 2));
+    const w = getCurrentWorkflow();
+    if (w) {
+      navigator.clipboard.writeText(JSON.stringify(getCleanedWorkflow(w), null, 2));
       toast.success("Workflow copied to clipboard");
     }
   }, [getCurrentWorkflow]);
 
+  const handleExportN8n = useCallback(() => {
+    const w = getCurrentWorkflow();
+    if (!w) return;
+    const n8n = toN8nWorkflow(w.name, getNodes(), getEdges());
+    navigator.clipboard.writeText(JSON.stringify(n8n, null, 2));
+    toast.success("Exported for n8n (copied to clipboard)");
+  }, [getCurrentWorkflow, getNodes, getEdges]);
+
   return (
     <Panel position="top-right">
       <div className="flex items-center gap-2">
+        {isAiGenerated && !isApproved && (
+          <Button size="sm" onClick={handleApproveDeploy}>
+            <RiCheckboxCircleLine className="size-4 shrink-0" />
+            <span className="hidden sm:block">Approve & deploy</span>
+          </Button>
+        )}
+        <Dialog open={nlEditOpen} onOpenChange={setNlEditOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              <RiPencilLine className="size-4 shrink-0" />
+              <span className="hidden sm:block">Edit in NL</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit with natural language</DialogTitle>
+            </DialogHeader>
+            <Textarea
+              placeholder='e.g. "Add a delay before sending the email"'
+              value={nlEditInput}
+              onChange={(e) => setNlEditInput(e.target.value)}
+              className="min-h-[80px]"
+              disabled={nlEditLoading}
+            />
+            <Button onClick={handleNlEditSubmit} disabled={nlEditLoading || !nlEditInput.trim()}>
+              {nlEditLoading ? "Applying..." : "Apply changes"}
+            </Button>
+          </DialogContent>
+        </Dialog>
         {isRunning && (
           <Button variant="outline" size="sm" onClick={abortAllOperations}>
             <RiStopLine className="size-4" />
@@ -99,7 +193,10 @@ const TopRightPanel = memo(function TopRightPanel() {
         )}
         <Button variant="outline" size="sm" onClick={handleExportToClipboard}>
           <RiArrowUpBoxLine className="size-4" />
-          <span className="hidden sm:block">Export to clipboard</span>
+          <span className="hidden sm:block">Export</span>
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportN8n}>
+          <span className="hidden sm:block">Export for n8n</span>
         </Button>
         <Button
           variant="outline"

@@ -47,11 +47,12 @@ export function AppSidebar() {
   const [mounted, setMounted] = useState(false);
   const [aiSheetOpen, setAiSheetOpen] = useState(false);
 
-  const { createWorkflow, switchWorkflow, setWorkflowContent, currentWorkflowId } = useWorkflowStore(
+  const { createWorkflow, switchWorkflow, setWorkflowContent, setWorkflowMetadata, currentWorkflowId } = useWorkflowStore(
     useShallow((state) => ({
       createWorkflow: state.createWorkflow,
       switchWorkflow: state.switchWorkflow,
       setWorkflowContent: state.setWorkflowContent,
+      setWorkflowMetadata: state.setWorkflowMetadata,
       currentWorkflowId: state.currentWorkflowId,
     }))
   );
@@ -127,6 +128,7 @@ export function AppSidebar() {
                           const id = createWorkflow(name);
                           const { nodes, edges } = generateWorkflowFromSteps(steps, name);
                           setWorkflowContent(id, nodes, edges);
+                          setWorkflowMetadata(id, { source: "ai-generated", approved: false });
                           switchWorkflow(id);
                           setAiSheetOpen(false);
                         }}
