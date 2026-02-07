@@ -1,0 +1,359 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HR Hiring Backend API",
+    "description": "Test OpenAPI spec with a single merged paths object. Use for import, endpoints list, and AI workflow generation.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://api.example.com/v1" }],
+  "tags": [
+    { "name": "Candidates" },
+    { "name": "Applications" },
+    { "name": "Stages" },
+    { "name": "Interviews" },
+    { "name": "Offers" },
+    { "name": "Notes" },
+    { "name": "Analytics" },
+    { "name": "Webhooks" }
+  ],
+  "paths": {
+    "/candidates": {
+      "get": {
+        "operationId": "listCandidates",
+        "tags": ["Candidates"],
+        "summary": "List candidates",
+        "parameters": [
+          { "name": "stage", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "jobId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of candidates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Candidate" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createCandidate",
+        "tags": ["Candidates"],
+        "summary": "Create candidate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CandidateCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Candidate created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Candidate" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidateId}": {
+      "get": {
+        "operationId": "getCandidate",
+        "tags": ["Candidates"],
+        "summary": "Get candidate details",
+        "parameters": [
+          { "name": "candidateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Candidate details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Candidate" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateCandidate",
+        "tags": ["Candidates"],
+        "summary": "Update candidate",
+        "parameters": [
+          { "name": "candidateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CandidateUpdate" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated" } }
+      }
+    },
+    "/candidates/{candidateId}/stage": {
+      "post": {
+        "operationId": "moveCandidateStage",
+        "tags": ["Stages"],
+        "summary": "Move candidate to another stage",
+        "parameters": [
+          { "name": "candidateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stage": { "type": "string" },
+                  "reason": { "type": "string" }
+                },
+                "required": ["stage"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Stage updated" } }
+      }
+    },
+    "/candidates/{candidateId}/notes": {
+      "post": {
+        "operationId": "addCandidateNote",
+        "tags": ["Notes"],
+        "summary": "Add internal HR note",
+        "parameters": [
+          { "name": "candidateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Note" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Note added" } }
+      }
+    },
+    "/interviews": {
+      "post": {
+        "operationId": "scheduleInterview",
+        "tags": ["Interviews"],
+        "summary": "Schedule interview",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Interview" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Interview scheduled" } }
+      }
+    },
+    "/offers": {
+      "post": {
+        "operationId": "createOffer",
+        "tags": ["Offers"],
+        "summary": "Create offer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Offer" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Offer created" } }
+      }
+    },
+    "/analytics/pipeline": {
+      "get": {
+        "operationId": "getPipelineAnalytics",
+        "tags": ["Analytics"],
+        "summary": "Hiring pipeline analytics",
+        "responses": {
+          "200": {
+            "description": "Pipeline stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "applied": { "type": "integer" },
+                    "screening": { "type": "integer" },
+                    "interview": { "type": "integer" },
+                    "offer": { "type": "integer" },
+                    "hired": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "tags": ["Webhooks"],
+        "summary": "List registered webhooks",
+        "responses": {
+          "200": {
+            "description": "Webhook list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Webhook" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "registerWebhook",
+        "tags": ["Webhooks"],
+        "summary": "Register a webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WebhookCreate" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Webhook registered" } }
+      }
+    },
+    "/webhooks/{webhookId}": {
+      "delete": {
+        "operationId": "deleteWebhook",
+        "tags": ["Webhooks"],
+        "summary": "Delete webhook",
+        "parameters": [
+          { "name": "webhookId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Webhook deleted" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Candidate": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "fullName": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "currentStage": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "rejected", "hired"] },
+          "experienceYears": { "type": "number" },
+          "skills": { "type": "array", "items": { "type": "string" } },
+          "resumeUrl": { "type": "string", "format": "uri" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CandidateCreate": {
+        "type": "object",
+        "required": ["fullName", "email"],
+        "properties": {
+          "fullName": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "skills": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "CandidateUpdate": {
+        "type": "object",
+        "properties": {
+          "fullName": { "type": "string" },
+          "phone": { "type": "string" },
+          "skills": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Interview": {
+        "type": "object",
+        "required": ["candidateId", "date", "interviewer"],
+        "properties": {
+          "candidateId": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "interviewer": { "type": "string" },
+          "mode": { "type": "string", "enum": ["online", "onsite"] },
+          "feedback": { "type": "string" }
+        }
+      },
+      "Offer": {
+        "type": "object",
+        "required": ["candidateId", "salary"],
+        "properties": {
+          "candidateId": { "type": "string" },
+          "salary": { "type": "number" },
+          "currency": { "type": "string" },
+          "joiningDate": { "type": "string", "format": "date" },
+          "status": { "type": "string", "enum": ["sent", "accepted", "rejected"] }
+        }
+      },
+      "Note": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "string" },
+          "author": { "type": "string" }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "candidate.created",
+                "candidate.updated",
+                "candidate.stage_changed",
+                "interview.scheduled",
+                "interview.completed",
+                "offer.created",
+                "offer.accepted",
+                "offer.rejected"
+              ]
+            }
+          },
+          "secret": { "type": "string" },
+          "active": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WebhookCreate": {
+        "type": "object",
+        "required": ["url", "events"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "events": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "secret": { "type": "string" }
+        }
+      }
+    }
+  }
+}

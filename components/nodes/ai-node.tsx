@@ -13,6 +13,7 @@ import { useApiKeysStore } from "@/lib/api-key-store";
 import { baseNodeDataSchema } from "@/lib/base-node";
 import { ComputeNodeFunction, ComputeNodeInput, formatInputs } from "@/lib/compute";
 import { useWorkflowStore } from "@/lib/workflow-store";
+import { formatProviderError } from "@/lib/utils";
 import { AnthropicProviderOptions } from "@ai-sdk/anthropic";
 import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import {} from "@ai-sdk/openai";
@@ -132,9 +133,10 @@ export const computeAi: ComputeNodeFunction<AiNodeData> = async (
     }
   } catch (error) {
     console.error(error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return {
       ...data,
-      error: `Error generating text: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+      error: formatProviderError(errMsg),
     };
   }
 

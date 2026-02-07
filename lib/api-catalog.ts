@@ -23,6 +23,8 @@ export interface CatalogService {
   authType: AuthType;
   connectionKey: string;
   operations: CatalogOperation[];
+  /** Optional link to API documentation (e.g. developer docs). */
+  docsUrl?: string;
 }
 
 export const apiCatalog: CatalogService[] = [
@@ -202,7 +204,7 @@ export const apiCatalog: CatalogService[] = [
         name: "HTTP request",
         description: "Custom HTTP request",
         method: "GET",
-        urlTemplate: "",
+        urlTemplate: "https://api.example.com/action",
         connectionKey: "",
         params: [],
         intentKeywords: ["custom", "api", "http", "webhook"],

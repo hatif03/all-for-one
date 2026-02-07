@@ -1,7 +1,111 @@
 import type { Edge, Node } from "@xyflow/react";
 import { nanoid } from "nanoid";
 import { discoverOperations, type DiscoveredStep } from "./api-discovery";
-import type { RequirementStep } from "./requirement-store";
+import type { RequirementClarification, RequirementStep } from "./requirement-store";
+
+export interface GenerateWorkflowOptions {
+  onProgress?: GenerateProgressCallback;
+  clarificationValues?: Record<string, string>;
+  clarifications?: RequirementClarification[];
+}
+
+/** Infer targetField from question text when AI omits it */
+function inferFieldFromQuestion(question: string): string | undefined {
+  const q = question.toLowerCase();
+  if (q.includes("subject")) return "subject";
+  if (q.includes("body") || q.includes("content")) return "body";
+  if (q.includes("who receive") || q.includes("recipient") || q.includes("to whom")) return "to";
+  if (q.includes("delay") || q.includes("how long") || q.includes("wait")) return "delayHours";
+  if (q.includes("channel")) return "channel";
+  if (q.includes("message") || q.includes("what to post")) return "message";
+  return undefined;
+}
+
+/** Build map stepId -> { targetField -> value } from clarifications and clarificationValues (keys: stepId-index) */
+function buildClarificationOverrides(
+  clarificationValues?: Record<string, string>,
+  clarifications?: RequirementClarification[]
+): Map<string, Record<string, string>> {
+  const byStep = new Map<string, Record<string, string>>();
+  if (!clarifications?.length || !clarificationValues) return byStep;
+  clarifications.forEach((c, idx) => {
+    const key = `${c.stepId}-${idx}`;
+    const value = clarificationValues[key];
+    if (value == null || value.trim() === "") return;
+    const field = c.targetField ?? inferFieldFromQuestion(c.question);
+    if (!field) return;
+    let row = byStep.get(c.stepId);
+    if (!row) {
+      row = {};
+      byStep.set(c.stepId, row);
+    }
+    row[field] = value.trim();
+  });
+  return byStep;
+}
+
+/** Apply user clarification overrides to node data by type */
+function applyClarificationOverrides(
+  data: Record<string, unknown>,
+  type: string,
+  overrides: Record<string, string> | undefined
+): void {
+  if (!overrides || Object.keys(overrides).length === 0) return;
+  if (type === "action-email") {
+    if (overrides.to != null) data.to = overrides.to;
+    if (overrides.subject != null) data.subject = overrides.subject;
+    if (overrides.body != null) data.body = overrides.body;
+    const items = data.items as { to?: string; subject?: string; body?: string }[] | undefined;
+    if (Array.isArray(items) && items.length > 0) {
+      if (overrides.to != null) items[0].to = overrides.to;
+      if (overrides.subject != null) items[0].subject = overrides.subject;
+      if (overrides.body != null) items[0].body = overrides.body;
+    }
+  } else if (type === "action-slack") {
+    if (overrides.channel != null) data.channel = overrides.channel;
+    if (overrides.message != null) data.message = overrides.message;
+    const items = data.items as { channel?: string; message?: string }[] | undefined;
+    if (Array.isArray(items) && items.length > 0) {
+      if (overrides.channel != null) items[0].channel = overrides.channel;
+      if (overrides.message != null) items[0].message = overrides.message;
+    }
+  } else if (type === "control-delay") {
+    const parseDelay = (v: string): { hours?: number; minutes?: number } => {
+      const match = String(v).trim().match(/(\d+)\s*(day|days|hour|hours|min|minutes?)?/i);
+      if (!match) {
+        const n = parseInt(v, 10);
+        if (!Number.isNaN(n)) return { hours: n };
+        return {};
+      }
+      const num = parseInt(match[1], 10);
+      const unit = (match[2] ?? "").toLowerCase();
+      if (unit.startsWith("d")) return { hours: num * 24 };
+      if (unit.startsWith("h")) return { hours: num };
+      if (unit.startsWith("m")) return { minutes: num };
+      return { hours: num };
+    };
+    if (overrides.delayHours != null) {
+      const parsed = parseDelay(overrides.delayHours);
+      if (parsed.hours != null) data.delayHours = parsed.hours;
+      if (parsed.minutes != null) data.delayMinutes = parsed.minutes;
+    }
+    if (overrides.delayMinutes != null) {
+      const n = parseInt(overrides.delayMinutes, 10);
+      if (!Number.isNaN(n)) data.delayMinutes = n;
+    }
+    const d = overrides.delay ?? overrides["how long"];
+    if (d != null && overrides.delayHours == null && overrides.delayMinutes == null) {
+      const parsed = parseDelay(d);
+      if (parsed.hours != null) data.delayHours = parsed.hours;
+      if (parsed.minutes != null) data.delayMinutes = parsed.minutes;
+    }
+  } else if (type === "action-http" && data.catalogParamValues && typeof data.catalogParamValues === "object") {
+    const pv = data.catalogParamValues as Record<string, string>;
+    for (const [k, v] of Object.entries(overrides)) {
+      if (k !== "to" && k !== "subject" && k !== "body" && k !== "channel" && k !== "message" && k !== "delayHours" && k !== "delayMinutes" && k !== "delay") pv[k] = v;
+    }
+  }
+}
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 200;
@@ -177,10 +281,16 @@ export type GenerateProgressCallback = (phase: string, detail?: string) => void;
 export async function generateWorkflowFromSteps(
   steps: RequirementStep[],
   workflowName: string,
-  onProgress?: GenerateProgressCallback
+  options?: GenerateWorkflowOptions
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
+  const { onProgress, clarificationValues, clarifications } = options ?? {};
+  const overridesByStep = buildClarificationOverrides(clarificationValues, clarifications);
+
   onProgress?.("Discovering operations", "");
-  const discovered = await discoverOperations(steps, onProgress);
+  const discovered = await discoverOperations(steps, onProgress, {
+    clarificationValues,
+    clarifications,
+  });
   onProgress?.("Building workflow", "");
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -228,38 +338,42 @@ export async function generateWorkflowFromSteps(
 
   const groups = buildStepGroups(discovered, startIndex);
   for (const group of groups) {
-    const { type, steps } = group;
-    const step = steps[0];
+    const { type, steps: groupSteps } = group;
+    const step = groupSteps[0];
+    const requirementStep = steps.find((s) => String(s.id) === String(step.stepId));
     const nodeId = nanoid();
     let data: Record<string, unknown>;
-    if (steps.length === 1) {
+    if (groupSteps.length === 1) {
       data = { ...stepToNodeData(type, step), label: shortLabel(step.description) };
     } else if (type === "action-email") {
       const firstData = stepToNodeData(type, step) as Record<string, unknown>;
       data = {
         operation: "send",
         service: firstData.service ?? "SendGrid",
-        items: steps.map((s) => ({
+        items: groupSteps.map((s) => ({
           label: shortLabel(s.description),
           to: "{{to}}",
           subject: "Notification",
           body: s.description ?? "",
         })),
-        label: steps.length > 1 ? `${steps.length} emails` : shortLabel(step.description),
+        label: groupSteps.length > 1 ? `${groupSteps.length} emails` : shortLabel(step.description),
       };
     } else if (type === "action-slack") {
       data = {
         operation: "post_message",
-        items: steps.map((s) => ({
+        items: groupSteps.map((s) => ({
           label: shortLabel(s.description),
           channel: "#general",
           message: s.description ?? "",
         })),
-        label: steps.length > 1 ? `${steps.length} messages` : shortLabel(step.description),
+        label: groupSteps.length > 1 ? `${groupSteps.length} messages` : shortLabel(step.description),
       };
     } else {
       data = { ...stepToNodeData(type, step), label: shortLabel(step.description) };
     }
+    const overrides = overridesByStep.get(step.stepId);
+    applyClarificationOverrides(data, type, overrides);
+    data.reason = requirementStep?.reason ?? shortLabel(step.description);
     const height = type.startsWith("control-") ? 180 : NODE_HEIGHT;
     nodes.push({
       id: nodeId,

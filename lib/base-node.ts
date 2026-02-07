@@ -6,6 +6,8 @@ export const baseNodeDataSchema = z.object({
   error: z.string().optional(),
   dirty: z.boolean().optional(),
   label: z.string().optional(),
+  /** Why this node is in the workflow (e.g. from AI generation) */
+  reason: z.string().optional(),
 });
 
 export type BaseNodeData = z.infer<typeof baseNodeDataSchema>;

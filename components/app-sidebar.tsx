@@ -29,6 +29,7 @@ import {
   RiGithubLine,
   RiKeyLine,
   RiLinkM,
+  RiListUnordered,
   RiMoonLine,
   RiSunLine,
   RiFileList3Line,
@@ -40,6 +41,7 @@ import type { Edge, Node } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import ApiKeys from "./api-keys";
 import ConnectionsDialog from "./connections-dialog";
+import { EndpointsSheet } from "./endpoints-sheet";
 import ImportDialog from "./import-dialog";
 import Logo from "./logo";
 import { RequirementChat } from "./requirement-chat";
@@ -141,21 +143,21 @@ export function AppSidebar() {
                     </SheetHeader>
                     <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                       <RequirementChat
-                        onGenerateWorkflow={async (steps, _clarificationValues) => {
+                        onGenerateWorkflow={async (steps, clarificationValues, clarifications) => {
                           const { useRequirementStore } = await import("@/lib/requirement-store");
                           const name = "Generated workflow";
                           const id = createWorkflow(name);
                           useRequirementStore.getState().setProgressMessage("Discovering operations…");
                           try {
-                            const { nodes, edges } = await generateWorkflowFromSteps(
-                              steps,
-                              name,
-                              (phase, detail) => {
+                            const { nodes, edges } = await generateWorkflowFromSteps(steps, name, {
+                              onProgress: (phase, detail) => {
                                 useRequirementStore.getState().setProgressMessage(
                                   detail ? `${phase}: ${detail}` : phase
                                 );
-                              }
-                            );
+                              },
+                              clarificationValues,
+                              clarifications,
+                            });
                             setWorkflowContent(id, nodes, edges);
                             setWorkflowMetadata(id, { source: "ai-generated", approved: false });
                             switchWorkflow(id);
@@ -278,10 +280,20 @@ export function AppSidebar() {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right">
-                  <p>Connect Gmail, Slack, and other services so workflows can send email or post messages.</p>
+                  <p>Add APIs (OpenAPI specs) and connect email or Slack.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <EndpointsSheet
+              trigger={
+                <SidebarMenuButton>
+                  <RiListUnordered className="size-4 shrink-0" />
+                  Your API endpoints
+                </SidebarMenuButton>
+              }
+            />
           </SidebarMenuItem>
           <SidebarMenuItem>
             <Link href="https://github.com/hatif03/one-for-all" target="_blank">

@@ -117,6 +117,11 @@ export function NodeCard({
             {node.data?.label != null && String(node.data.label).trim() !== "" && (
               <span className="text-xs text-muted-foreground truncate">{String(node.data.label)}</span>
             )}
+            {node.data?.reason != null && String(node.data.reason).trim() !== "" && (
+              <span className="text-[11px] text-muted-foreground/80 truncate" title={String(node.data.reason)}>
+                Why: {String(node.data.reason)}
+              </span>
+            )}
           </div>
         </div>
         {node.data?.dirty && (

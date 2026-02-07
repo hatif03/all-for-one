@@ -17,7 +17,7 @@ import {
   RiArrowDownSLine,
   RiArrowUpSLine,
 } from "@remixicon/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -25,18 +25,25 @@ function ThinkingBlock({ thinking, defaultOpen = false }: { thinking: string; de
   const [open, setOpen] = useState(defaultOpen);
   if (!thinking.trim()) return null;
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="mb-2">
-      <CollapsibleTrigger className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground/80 hover:text-muted-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="mt-2 pt-2 border-t border-border/50">
+      <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground/80 transition-colors">
         {open ? <RiArrowUpSLine className="size-3 shrink-0" /> : <RiArrowDownSLine className="size-3 shrink-0" />}
-        Thinking
+        <span className="underline decoration-dotted underline-offset-1">Show thinking</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-1 rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px] text-muted-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
+        <div className="mt-1.5 rounded bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground max-h-32 overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
           {thinking}
         </div>
       </CollapsibleContent>
     </Collapsible>
   );
+}
+
+/** Heuristic: content looks like clarification questions (short, contains questions) */
+function looksLikeQuestions(content: string): boolean {
+  const t = content.trim();
+  if (t.length > 500 || t.length < 3) return false;
+  return t.includes("?") || t.toLowerCase().includes("which ") || t.toLowerCase().includes("what ") || t.toLowerCase().includes("how ");
 }
 
 function AssistantBubble({
@@ -49,15 +56,32 @@ function AssistantBubble({
   isPending?: boolean;
 }) {
   const showThinking = (thinking?.trim() ?? "").length > 0;
-  const displayContent = content.trim()
+  const hasContent = content.trim().length > 0;
+  const displayContent = hasContent
     ? content
     : isPending
-      ? "…"
+      ? "Getting response…"
       : "";
+  const isQuestion = displayContent ? looksLikeQuestions(displayContent) : false;
   return (
-    <div className={cn("rounded-lg px-3 py-2 max-w-[85%] text-sm bg-muted", isPending && "opacity-90")}>
+    <div
+      className={cn(
+        "rounded-xl max-w-[85%] text-sm",
+        isQuestion
+          ? "border border-primary/25 bg-primary/5 shadow-sm px-4 py-3"
+          : "rounded-lg px-3 py-2 bg-muted",
+        isPending && "opacity-90"
+      )}
+    >
+      {displayContent ? (
+        <div className={cn("text-foreground", isQuestion && "space-y-1")}>
+          {isQuestion && (
+            <p className="text-[10px] font-medium uppercase tracking-wider text-primary/80">Quick questions</p>
+          )}
+          <div className={cn(isQuestion && "text-[15px] leading-snug")}>{displayContent}</div>
+        </div>
+      ) : null}
       {showThinking && <ThinkingBlock thinking={thinking!} defaultOpen={isPending} />}
-      {displayContent ? <div className="text-foreground">{displayContent}</div> : null}
     </div>
   );
 }
@@ -65,7 +89,11 @@ function AssistantBubble({
 export function RequirementChat({
   onGenerateWorkflow,
 }: {
-  onGenerateWorkflow?: (steps: { id: string; description: string }[], clarificationValues?: Record<string, string>) => void;
+  onGenerateWorkflow?: (
+    steps: { id: string; description: string }[],
+    clarificationValues?: Record<string, string>,
+    clarifications?: { stepId: string; question: string; placeholder: string; targetField?: string }[]
+  ) => void;
 }) {
   const {
     messages,
@@ -87,6 +115,7 @@ export function RequirementChat({
   const addExample = useExamplesStore((s) => s.addExample);
   const [input, setInput] = useState("");
   const [clarificationValues, setClarificationValues] = useState<Record<string, string>>({});
+  const stepsSectionRef = useRef<HTMLDivElement>(null);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -101,10 +130,19 @@ export function RequirementChat({
         onContentFragment: appendPendingContent,
       });
       const thinking = result.displayThinking ?? useRequirementStore.getState().pendingThinking;
-      const content = result.displayContent ?? useRequirementStore.getState().pendingContent;
+      const rawContent =
+        result.displayContent ??
+        useRequirementStore.getState().pendingContent ??
+        result.message ??
+        "No response.";
+      const hasSteps = result.steps && result.steps.length > 0;
+      const content =
+        hasSteps
+          ? `I've broken this into ${result.steps!.length} steps. Review below and click "Generate workflow" to build it.`
+          : rawContent;
       commitPendingMessage(thinking, content);
-      if (result.steps?.length) {
-        setSteps(result.steps);
+      if (hasSteps) {
+        setSteps(result.steps!);
         setClarifications(result.clarifications ?? null);
         setClarificationValues({});
       } else {
@@ -131,6 +169,13 @@ export function RequirementChat({
     commitPendingMessage,
     clearPending,
   ]);
+
+  useEffect(() => {
+    if (steps?.length && !isLoading) {
+      const t = setTimeout(() => stepsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+      return () => clearTimeout(t);
+    }
+  }, [steps?.length, isLoading]);
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
@@ -180,7 +225,7 @@ export function RequirementChat({
             <div
               key={i}
               className={cn(
-                "max-w-[85%] text-sm",
+                "max-w-[85%] text-sm animate-in fade-in-0 duration-200",
                 m.role === "user" && "ml-auto"
               )}
             >
@@ -208,7 +253,7 @@ export function RequirementChat({
             </div>
           )}
           {steps != null && steps.length > 0 && !isLoading && (
-            <div className="rounded-lg border bg-card p-3 space-y-2">
+            <div ref={stepsSectionRef} className="rounded-lg border bg-card p-3 space-y-2 scroll-mt-4">
               <p className="text-sm font-medium">Steps I&apos;ll create:</p>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                 {steps.map((s) => (
@@ -216,14 +261,14 @@ export function RequirementChat({
                 ))}
               </ol>
               {clarifications != null && clarifications.length > 0 && (
-                <div className="text-xs space-y-2 pt-1 border-t">
-                  <p className="font-medium text-muted-foreground">Optional details:</p>
-                  <div className="space-y-1.5">
+                <div className="space-y-2 pt-2 border-t border-border/60">
+                  <p className="text-xs font-semibold text-foreground">Optional details</p>
+                  <div className="space-y-2">
                     {clarifications.map((c, idx) => {
                       const inputKey = `${c.stepId}-${idx}`;
                       return (
                         <label key={inputKey} className="block">
-                          <span className="text-muted-foreground">{c.question}</span>
+                          <span className="text-sm font-medium text-foreground block mb-1">{c.question}</span>
                           <input
                             type="text"
                             placeholder={c.placeholder}
@@ -231,7 +276,7 @@ export function RequirementChat({
                             onChange={(e) =>
                               setClarificationValues((prev) => ({ ...prev, [inputKey]: e.target.value }))
                             }
-                            className="mt-0.5 w-full rounded border bg-background px-2 py-1.5 text-sm"
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           />
                         </label>
                       );
@@ -244,7 +289,11 @@ export function RequirementChat({
                   <Button
                     className="flex-1"
                     onClick={() =>
-                      onGenerateWorkflow(steps, Object.keys(clarificationValues).length > 0 ? clarificationValues : undefined)
+                      onGenerateWorkflow(
+                        steps,
+                        Object.keys(clarificationValues).length > 0 ? clarificationValues : undefined,
+                        clarifications ?? undefined
+                      )
                     }
                   >
                     <RiMagicLine className="size-4 shrink-0" />

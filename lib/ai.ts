@@ -2,6 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createXai } from "@ai-sdk/xai";
+import { createGroq } from "@ai-sdk/groq";
 import { LanguageModelV1 } from "ai";
 
 export const providers: Record<
@@ -15,15 +16,13 @@ export const providers: Record<
   "Google Generative AI": {
     keyUrl: "https://aistudio.google.com/apikey",
     models: [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
       "gemini-1.5-flash",
       "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
-      "gemini-2.0-pro-exp-02-05",
       "gemini-2.0-flash-exp",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
       "gemini-exp-1206",
       "gemma-3-27b-it",
     ],
@@ -101,6 +100,27 @@ export const providers: Record<
         apiKey,
       });
       return xai(modelId);
+    },
+  },
+  Groq: {
+    keyUrl: "https://console.groq.com/keys",
+    models: [
+      "llama-3.3-70b-versatile",
+      "llama-3.1-8b-instant",
+      "llama3-70b-8192",
+      "llama3-8b-8192",
+      "mixtral-8x7b-32768",
+      "gemma2-9b-it",
+      "qwen-2.5-32b",
+      "qwen/qwen3-32b",
+      "deepseek-r1-distill-llama-70b",
+      "deepseek-r1-distill-qwen-32b",
+      "meta-llama/llama-4-maverick-17b-128e-instruct",
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+    ],
+    createModel(apiKey, modelId) {
+      const groq = createGroq({ apiKey });
+      return groq(modelId);
     },
   },
 };

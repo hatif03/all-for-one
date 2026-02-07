@@ -11,6 +11,10 @@ export interface RequirementStep {
   id: string;
   description: string;
   suggestedService?: string;
+  /** One-sentence explanation of why this step is in the workflow */
+  reason?: string;
+  /** When set, the workflow generator will pre-fill this HTTP step with the given operation (from user's custom APIs). */
+  catalogOperationId?: string;
 }
 
 /** Optional clarification for a step (e.g. "Who receives the email?") */
@@ -18,6 +22,8 @@ export interface RequirementClarification {
   stepId: string;
   question: string;
   placeholder: string;
+  /** Which node field to fill (e.g. "subject", "body", "to", "delayHours", "channel") */
+  targetField?: string;
 }
 
 export type ProgressCallback = (phase: string, detail?: string) => void;

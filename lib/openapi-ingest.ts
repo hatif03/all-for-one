@@ -18,10 +18,16 @@ interface OpenAPI3Spec {
         operationId?: string;
         description?: string;
         parameters?: Array<{ name: string; in: string; required?: boolean; description?: string }>;
-        requestBody?: { content?: Record<string, { schema?: { properties?: Record<string, unknown> } }> };
+        requestBody?: {
+          content?: Record<
+            string,
+            { schema?: { $ref?: string; properties?: Record<string, unknown> } }
+          >;
+        };
       }
     >
   >;
+  components?: { schemas?: Record<string, { properties?: Record<string, unknown> }> };
 }
 
 /** Swagger 2.0 shape (e.g. FastAPI /openapi.json, Petstore sample) */
@@ -70,6 +76,15 @@ function resolveUrl(base: string, path: string): string {
   const baseUrl = base.replace(/\/$/, "");
   const pathStr = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${pathStr}`;
+}
+
+/** Resolve #/components/schemas/Name to property keys from spec.components.schemas */
+function getOas3BodyParamKeysFromRef(spec: OpenAPI3Spec, ref: string): string[] {
+  const match = ref.match(/#\/components\/schemas\/(.+)/);
+  if (!match) return [];
+  const schema = spec.components?.schemas?.[match[1]];
+  if (!schema?.properties) return [];
+  return Object.keys(schema.properties);
 }
 
 function getSwagger2BaseUrl(spec: Swagger2Spec): string {
@@ -211,10 +226,20 @@ export function ingestOpenAPISpec(spec: OpenAPISpec, sourceId?: string): Catalog
         }
       }
 
-      if (op.requestBody?.content?.["application/json"]?.schema?.properties) {
-        for (const [key] of Object.entries(op.requestBody.content["application/json"].schema.properties)) {
-          if (!params.some((p) => p.key === key)) {
-            params.push({ key, required: false, description: key });
+      const bodySchema = op.requestBody?.content?.["application/json"]?.schema;
+      if (bodySchema) {
+        if (bodySchema.properties) {
+          for (const [key] of Object.entries(bodySchema.properties)) {
+            if (!params.some((p) => p.key === key)) {
+              params.push({ key, required: false, description: key });
+            }
+          }
+        } else if (bodySchema.$ref && "components" in oas3 && oas3.components?.schemas) {
+          const keys = getOas3BodyParamKeysFromRef(oas3, bodySchema.$ref);
+          for (const key of keys) {
+            if (!params.some((p) => p.key === key)) {
+              params.push({ key, required: false, description: key });
+            }
           }
         }
       }
