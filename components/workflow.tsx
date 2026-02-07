@@ -9,6 +9,8 @@ import { useShallow } from "zustand/react/shallow";
 import Logo from "./logo";
 import { AiNode } from "./nodes/ai-node";
 import { AnnotationNode } from "./nodes/annotation-node";
+import { ActionHttpNode } from "./nodes/action-http-node";
+import { createGenericBusinessNode } from "./nodes/generic-business-node";
 import { MarkdownNode } from "./nodes/markdown-node";
 import { PromptNode } from "./nodes/prompt-node";
 import { Panels } from "./panels";
@@ -22,6 +24,17 @@ const nodeTypes: NodeTypes = {
   ai: AiNode,
   markdown: MarkdownNode,
   annotation: AnnotationNode,
+  "trigger-manual": createGenericBusinessNode("trigger-manual"),
+  "trigger-webhook": createGenericBusinessNode("trigger-webhook"),
+  "trigger-schedule": createGenericBusinessNode("trigger-schedule"),
+  "action-http": ActionHttpNode,
+  "action-email": createGenericBusinessNode("action-email"),
+  "action-slack": createGenericBusinessNode("action-slack"),
+  "action-document": createGenericBusinessNode("action-document"),
+  "control-delay": createGenericBusinessNode("control-delay"),
+  "control-condition": createGenericBusinessNode("control-condition"),
+  "control-approval": createGenericBusinessNode("control-approval"),
+  "data-transform": createGenericBusinessNode("data-transform"),
 };
 
 const selector = (state: WorkflowState) => ({

@@ -47,10 +47,29 @@ function AddNodeButtonsRaw() {
           break;
         case "annotation":
           addNode({
-            data: {text: ""},
+            data: { text: "" },
             position,
             height: 500,
             width: 450,
+            type: type,
+          });
+          break;
+        case "trigger-manual":
+        case "trigger-webhook":
+        case "trigger-schedule":
+        case "action-http":
+        case "action-email":
+        case "action-slack":
+        case "action-document":
+        case "control-delay":
+        case "control-condition":
+        case "control-approval":
+        case "data-transform":
+          addNode({
+            data: {},
+            position,
+            height: 200,
+            width: 280,
             type: type,
           });
           break;
@@ -60,7 +79,7 @@ function AddNodeButtonsRaw() {
   );
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" onClick={() => handleAddNode("prompt")}>
         <RiAddLine className="size-4 shrink-0" />
         Prompt
@@ -76,6 +95,22 @@ function AddNodeButtonsRaw() {
       <Button variant="outline" onClick={() => handleAddNode("annotation")}>
         <RiAddLine className="size-4 shrink-0" />
         Annotation
+      </Button>
+      <Button variant="outline" onClick={() => handleAddNode("trigger-manual")}>
+        <RiAddLine className="size-4 shrink-0" />
+        Trigger
+      </Button>
+      <Button variant="outline" onClick={() => handleAddNode("action-http")}>
+        <RiAddLine className="size-4 shrink-0" />
+        HTTP
+      </Button>
+      <Button variant="outline" onClick={() => handleAddNode("control-delay")}>
+        <RiAddLine className="size-4 shrink-0" />
+        Delay
+      </Button>
+      <Button variant="outline" onClick={() => handleAddNode("control-approval")}>
+        <RiAddLine className="size-4 shrink-0" />
+        Approval
       </Button>
     </div>
   );

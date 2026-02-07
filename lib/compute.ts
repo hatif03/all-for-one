@@ -1,6 +1,19 @@
 import { aiNodeDataSchema, computeAi } from "@/components/nodes/ai-node";
 import { computeMarkdown } from "@/components/nodes/markdown-node";
 import { computePrompt, promptNodeDataSchema } from "@/components/nodes/prompt-node";
+import { computeActionHttp } from "@/lib/compute-actions";
+import {
+  computeActionDocument,
+  computeActionEmail,
+  computeActionSlack,
+  computeControlApproval,
+  computeControlCondition,
+  computeControlDelay,
+  computeDataTransform,
+  computeTriggerManual,
+  computeTriggerSchedule,
+  computeTriggerWebhook,
+} from "@/lib/compute-stubs";
 
 export type ComputeNodeFunction<T> = (inputs: ComputeNodeInput[], data: T, abortSignal: AbortSignal, nodeId: string) => Promise<T>;
 
@@ -38,6 +51,28 @@ export const computeNode = async (
         return computePrompt(inputs, promptNodeDataSchema.parse(data), abortSignal, nodeId);
       case "ai":
         return computeAi(inputs, aiNodeDataSchema.parse(data), abortSignal, nodeId);
+      case "trigger-manual":
+        return computeTriggerManual(inputs, data, abortSignal, nodeId);
+      case "trigger-webhook":
+        return computeTriggerWebhook(inputs, data, abortSignal, nodeId);
+      case "trigger-schedule":
+        return computeTriggerSchedule(inputs, data, abortSignal, nodeId);
+      case "action-http":
+        return computeActionHttp(inputs, data, abortSignal, nodeId);
+      case "action-email":
+        return computeActionEmail(inputs, data, abortSignal, nodeId);
+      case "action-slack":
+        return computeActionSlack(inputs, data, abortSignal, nodeId);
+      case "action-document":
+        return computeActionDocument(inputs, data, abortSignal, nodeId);
+      case "control-delay":
+        return computeControlDelay(inputs, data, abortSignal, nodeId);
+      case "control-condition":
+        return computeControlCondition(inputs, data, abortSignal, nodeId);
+      case "control-approval":
+        return computeControlApproval(inputs, data, abortSignal, nodeId);
+      case "data-transform":
+        return computeDataTransform(inputs, data, abortSignal, nodeId);
       default:
         throw new Error(`Node type ${type} not found`);
     }

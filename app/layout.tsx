@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "All for One",
+  title: "One for All",
   description:
     "Free open-source node-based AI workflow builder. Create reusable tasks with drag-and-drop nodes, chain AI operations, use any model with your API keys. Runs entirely in browser, your data stays private. Perfect for email automation, content creation, data processing, etc.",
 };
@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${pangolin.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${pangolin.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class"
             defaultTheme="system"
             enableSystem

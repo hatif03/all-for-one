@@ -1,7 +1,7 @@
-# All for One
+# One for All
 
 <h4 align="center">
-  All for One – Free node-based AI workflow builder
+  One for All – Free node-based AI workflow builder
 </h4>
 
 <div align="center">
@@ -14,20 +14,20 @@
 
 <br />
 <p align="center">
-  <a href="https://github.com/yourusername/all-for-one/blob/master/LICENSE">
-    <img alt="All for One is released under the MIT license." src="https://img.shields.io/badge/license-MIT-blue.svg"  />
+  <a href="https://github.com/yourusername/one-for-all/blob/master/LICENSE">
+    <img alt="One for All is released under the MIT license." src="https://img.shields.io/badge/license-MIT-blue.svg"  />
   </a>
 </p>
 
 ## What Problem It Solves
 
-All for One is for anyone who is tired of repeating themselves to AI.
+One for All is for anyone who is tired of repeating themselves to AI.
 
-If you find yourself frequently typing the same instructions into a chat window — like "proofread this," "summarize that," or "translate this" — you're wasting valuable time. All for One eliminates this repetition. It allows you to create reusable workflows for your common AI tasks, so you can stop rewriting prompts and focus on the actual work.
+If you find yourself frequently typing the same instructions into a chat window — like "proofread this," "summarize that," or "translate this" — you're wasting valuable time. One for All eliminates this repetition. It allows you to create reusable workflows for your common AI tasks, so you can stop rewriting prompts and focus on the actual work.
 
 ## Features
 
-All for One offers:
+One for All offers:
 
 - 💯&nbsp;Free & open-source.
 - 🎨&nbsp;Infinite canvas, node-based workflow builder.
@@ -59,7 +59,7 @@ All for One offers:
 
 ## Quick start
 
-**Note:** All for One runs entirely in your browser - no installation required!
+**Note:** One for All runs entirely in your browser - no installation required!
 
 1. **Create Nodes**: Add prompt, AI, markdown, or annotation nodes to your workflow
 2. **Define Instructions**: Set up your system prompts and parameters
@@ -77,7 +77,7 @@ Each node has a Run button, when you click on it, it will run the node and send 
 
 ## Contributing
 
-- Missing something or found a bug? [Report here](https://github.com/yourusername/all-for-one/issues).
+- Missing something or found a bug? [Report here](https://github.com/yourusername/one-for-all/issues).
 - Want to contribute? Check out our contribution guide.
 - Have ideas for new features? Let us know in the discussions.
 

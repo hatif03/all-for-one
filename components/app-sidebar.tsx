@@ -86,8 +86,8 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="px-2 flex items-center gap-2">
           <Logo className="size-18" />
-          <span className="text-2xl tracking-tighter font-sans leading-none font-medium">
-            All for One
+          <span className="text-2xl tracking-tighter font-sans leading-none font-medium" suppressHydrationWarning>
+            One for All
           </span>
         </div>
       </SidebarHeader>
@@ -144,7 +144,7 @@ export function AppSidebar() {
             </ApiKeys>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="https://github.com/yourusername/all-for-one" target="_blank">
+            <Link href="https://github.com/yourusername/one-for-all" target="_blank">
               <SidebarMenuButton>
                 <RiGithubLine className="size-4 shrink-0" />
                 GitHub
