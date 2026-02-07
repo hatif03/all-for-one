@@ -34,7 +34,11 @@ export const useConnectionsStore = create<ConnectionsState>()(
     {
       name: "workflow-connections-storage",
       partialize: (s) => ({ connections: s.connections }),
-      merge: (persisted, current) => ({ ...current, ...persisted, open: false }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(typeof persisted === "object" && persisted !== null ? persisted : {}),
+        open: false,
+      }),
     }
   )
 );
